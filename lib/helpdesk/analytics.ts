@@ -1,12 +1,17 @@
 import type { Ticket, TicketPriority, TicketStatus } from "./types"
 import { mean, median, mode, percentile, stdDev } from "./statistics"
 
-export const SLA_TARGETS_HOURS: Record<TicketPriority, number> = {
+export type SlaTargets = Record<TicketPriority, number>
+
+export const DEFAULT_SLA_TARGETS: SlaTargets = {
   critical: 4,
   high: 8,
   medium: 24,
   low: 72,
 }
+
+// Kept for backward compatibility
+export const SLA_TARGETS_HOURS = DEFAULT_SLA_TARGETS
 
 export interface KPIs {
   total: number
@@ -21,7 +26,7 @@ export interface KPIs {
   backlog: number
 }
 
-export function computeKPIs(tickets: Ticket[]): KPIs {
+export function computeKPIs(tickets: Ticket[], slaTargets: SlaTargets = DEFAULT_SLA_TARGETS): KPIs {
   const total = tickets.length
   const resolved = tickets.filter((t) => t.status === "resolved" || t.status === "closed")
   const open = total - resolved.length
@@ -42,8 +47,7 @@ export function computeKPIs(tickets: Ticket[]): KPIs {
       if (!t.slaBreached) slaMet++
     } else if (t.resolutionTimeHours != null) {
       slaConsidered++
-      const target = SLA_TARGETS_HOURS[t.priority]
-      if (t.resolutionTimeHours <= target) slaMet++
+      if (t.resolutionTimeHours <= slaTargets[t.priority]) slaMet++
     }
   }
 
@@ -116,7 +120,7 @@ export interface AgentStats {
   slaCompliancePct: number
 }
 
-export function computeAgentStats(tickets: Ticket[]): AgentStats[] {
+export function computeAgentStats(tickets: Ticket[], slaTargets: SlaTargets = DEFAULT_SLA_TARGETS): AgentStats[] {
   const byAgent = new Map<string, Ticket[]>()
   for (const t of tickets) {
     if (!byAgent.has(t.agent)) byAgent.set(t.agent, [])
@@ -135,7 +139,7 @@ export function computeAgentStats(tickets: Ticket[]): AgentStats[] {
         if (!t.slaBreached) slaMet++
       } else if (t.resolutionTimeHours != null) {
         slaConsidered++
-        if (t.resolutionTimeHours <= SLA_TARGETS_HOURS[t.priority]) slaMet++
+        if (t.resolutionTimeHours <= slaTargets[t.priority]) slaMet++
       }
     }
     out.push({
@@ -205,4 +209,23 @@ export function csatDistribution(tickets: Ticket[]): { score: number; count: num
     count: tickets.filter((t) => t.csatScore === s).length,
   }))
   return out
+}
+
+export function backlogAging(tickets: Ticket[]): { bucket: string; count: number }[] {
+  const now = Date.now()
+  const openTickets = tickets.filter(
+    (t) => t.status === "open" || t.status === "in_progress" || t.status === "pending",
+  )
+  return [
+    { bucket: "< 24h", minH: 0, maxH: 24 },
+    { bucket: "1–7 days", minH: 24, maxH: 168 },
+    { bucket: "7–30 days", minH: 168, maxH: 720 },
+    { bucket: "> 30 days", minH: 720, maxH: Infinity },
+  ].map(({ bucket, minH, maxH }) => ({
+    bucket,
+    count: openTickets.filter((t) => {
+      const ageH = (now - t.createdAt.getTime()) / 3600000
+      return ageH >= minH && ageH < maxH
+    }).length,
+  }))
 }

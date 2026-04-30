@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useCallback, useRef, useState } from "react"
-import { Upload, FileSpreadsheet, FileText, FileCode, Database, X } from "lucide-react"
+import { Upload, FileSpreadsheet, FileText, FileCode, Database, X, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { parseFile } from "@/lib/helpdesk/parsers"
@@ -28,8 +28,11 @@ export function FileUpload({ onParsed, onError, compact = false }: FileUploadPro
       if (!files || files.length === 0) return
       setLoading(true)
       try {
-        const result = await parseFile(files[0])
-        onParsed(result)
+        // Process all dropped/selected files sequentially
+        for (const file of Array.from(files)) {
+          const result = await parseFile(file)
+          onParsed(result)
+        }
       } catch (e) {
         onError((e as Error).message)
       } finally {
@@ -57,12 +60,13 @@ export function FileUpload({ onParsed, onError, compact = false }: FileUploadPro
           className="gap-2"
         >
           {loading ? <Spinner className="size-4" /> : <Upload className="size-4" />}
-          Upload data
+          Add file
         </Button>
         <input
           ref={inputRef}
           type="file"
           accept={ACCEPTED}
+          multiple
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
@@ -87,10 +91,11 @@ export function FileUpload({ onParsed, onError, compact = false }: FileUploadPro
         {loading ? <Spinner className="size-6" /> : <Upload className="size-6" />}
       </div>
       <h3 className="text-lg font-semibold tracking-tight">
-        {loading ? "Parsing your data..." : "Drop a data file to begin"}
+        {loading ? "Parsing your data..." : "Drop one or more data files"}
       </h3>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">
-        Upload your helpdesk export and we&apos;ll auto-detect columns, normalize values, and generate metrics.
+        Upload your helpdesk export and we&apos;ll auto-detect columns, normalize values, and generate metrics. You can
+        add multiple files — they&apos;ll be compiled and deduplicated automatically.
       </p>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
@@ -110,13 +115,14 @@ export function FileUpload({ onParsed, onError, compact = false }: FileUploadPro
 
       <Button onClick={() => inputRef.current?.click()} disabled={loading} className="mt-6 gap-2">
         <Upload className="size-4" />
-        Choose file
+        Choose files
       </Button>
 
       <input
         ref={inputRef}
         type="file"
         accept={ACCEPTED}
+        multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
@@ -130,25 +136,74 @@ export function FileUpload({ onParsed, onError, compact = false }: FileUploadPro
   )
 }
 
-export function DatasetSummary({ dataset, onClear }: { dataset: ParsedDataset; onClear: () => void }) {
+export function DatasetSources({
+  datasets,
+  uniqueCount,
+  onRemove,
+  onClear,
+}: {
+  datasets: ParsedDataset[]
+  uniqueCount: number
+  onRemove: (index: number) => void
+  onClear: () => void
+}) {
+  const totalRaw = datasets.reduce((s, d) => s + d.parsedRowCount, 0)
+  const dupes = totalRaw - uniqueCount
+  const totalWarnings = datasets.reduce((s, d) => s + d.warnings.length, 0)
+
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border bg-card px-4 py-2.5">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex size-8 items-center justify-center rounded-md bg-foreground text-background">
-          <FileSpreadsheet className="size-4" />
+    <div className="rounded-lg border bg-card p-3 space-y-2">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-md bg-foreground text-background">
+            <Layers className="size-3.5" />
+          </div>
+          <div className="leading-tight">
+            <p className="text-sm font-semibold">
+              {uniqueCount.toLocaleString()} tickets
+              {datasets.length > 1 && <span className="ml-1 text-muted-foreground font-normal">across {datasets.length} files</span>}
+            </p>
+            {dupes > 0 && (
+              <p className="text-xs text-muted-foreground">{dupes.toLocaleString()} duplicate IDs merged</p>
+            )}
+            {totalWarnings > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">{totalWarnings} parsing warning(s)</p>
+            )}
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{dataset.fileName}</p>
-          <p className="text-xs text-muted-foreground">
-            {dataset.fileType} · {dataset.parsedRowCount.toLocaleString()} tickets parsed
-            {dataset.warnings.length > 0 && ` · ${dataset.warnings.length} warning(s)`}
-          </p>
-        </div>
+        <Button variant="ghost" size="sm" onClick={onClear} className="gap-1.5 text-muted-foreground">
+          <X className="size-3.5" />
+          Clear all
+        </Button>
       </div>
-      <Button variant="ghost" size="sm" onClick={onClear} className="gap-1.5">
-        <X className="size-4" />
-        Clear
-      </Button>
+
+      <div className="space-y-1">
+        {datasets.map((ds, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-1.5"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <FileSpreadsheet className="size-3.5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate">{ds.fileName}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {ds.fileType} · {ds.parsedRowCount.toLocaleString()} tickets
+                  {ds.warnings.length > 0 && ` · ${ds.warnings.length} warning(s)`}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => onRemove(i)}
+            >
+              <X className="size-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

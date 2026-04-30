@@ -1,35 +1,99 @@
-# helpdesk-metrics-dashboard
+# Helpdesk Metrics Dashboard
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+A client-side analytics dashboard for IT helpdesk and service desk teams. Upload your ticket exports and get instant KPIs, charts, agent leaderboards, SLA compliance tracking, and stakeholder-ready insights — all processed locally in the browser with no data ever sent to a server.
 
-## Built with v0
+## Features
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+- **Multi-file compilation** — upload multiple exports (CSV, Excel, JSON, SQL) and they are merged into a single dataset with automatic deduplication by ticket ID
+- **Auto column detection** — flexible field mapping recognises column names from Zendesk, Jira, Freshdesk, ServiceNow, and custom exports
+- **KPI cards** — total tickets, open backlog, avg/median resolution time, first response time, SLA compliance %, and CSAT with period-over-period trend arrows
+- **Charts** — ticket volume timeline, priority distribution, status breakdown, top categories, resolution time by priority, backlog aging, CSAT distribution, channel breakdown
+- **Agent leaderboard** — per-agent totals, resolution times, CSAT, and SLA compliance
+- **Configurable SLA targets** — set custom resolution hour targets per priority level (critical / high / medium / low)
+- **Auto insights** — SLA health, high-priority breach alerts, stale backlog risk, CSAT threshold alerts, top performer callouts
+- **PDF export** — print-optimised layout that expands all tabs and injects a report header with generation date
+- **CSV export** — download the current filtered dataset
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_QjqFUQLl6aUKidxYUM56DuTPzS8q)
+## Supported file formats
 
-## Getting Started
+| Format | Notes |
+|--------|-------|
+| CSV / TSV | Comma or tab-separated; any encoding |
+| Excel | `.xlsx` / `.xls`; reads the first sheet |
+| JSON | Array of objects, or an object containing an array |
+| SQL | Parses `INSERT INTO ... VALUES (...)` statements |
 
-First, run the development server:
+## Getting started
+
+### Prerequisites
+
+- Node.js 18 or later
+- npm (comes with Node)
+
+### Install and run
 
 ```bash
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Other commands
 
-## Learn More
+```bash
+# Production build
+npm run build
 
-To learn more, take a look at the following resources:
+# Start the production server (after building)
+npm start
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+# Lint
+npm run lint
+```
 
-<a href="https://v0.app/chat/api/kiro/clone/zrsanchez36/helpdesk-metrics-dashboard" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+## Usage
+
+1. Open the app in your browser.
+2. Drag and drop one or more helpdesk export files onto the upload area, or click **Choose files**.
+3. Use the filter bar to narrow by date range, priority, status, category, or agent.
+4. Switch between the **Overview**, **Performance**, **Statistics**, and **Tickets** tabs.
+5. Click **SLA targets** in the header to customise resolution time thresholds.
+6. Click **PDF** to export the full dashboard as a print-ready report, or **CSV** to download the filtered data.
+
+To add more data to an existing view, click **Add file** in the header — the new file is merged with what is already loaded.
+
+## Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| UI components | shadcn/ui (Radix UI primitives) |
+| Styling | Tailwind CSS 4 |
+| Charts | Recharts |
+| CSV parsing | PapaParse |
+| Excel parsing | SheetJS (xlsx) |
+
+## Project structure
+
+```
+app/                  Next.js app router (layout, page, global styles)
+components/
+  helpdesk/           Domain components (dashboard, charts, tables, filters…)
+  ui/                 shadcn/ui base components
+lib/
+  helpdesk/
+    parsers.ts        File format detection and column mapping
+    analytics.ts      KPI and stats calculations
+    statistics.ts     Mean, median, std dev, percentiles
+    types.ts          TypeScript interfaces
+    sample-data.ts    Demo data generator
+```
+
+## Privacy
+
+All file parsing and analytics run entirely in the browser. No ticket data is uploaded to any server.

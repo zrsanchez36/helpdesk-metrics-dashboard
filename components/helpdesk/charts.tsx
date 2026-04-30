@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import type { Ticket } from "@/lib/helpdesk/types"
 import {
+  backlogAging,
   countBy,
   csatDistribution,
   resolutionByPriority,
@@ -274,6 +275,45 @@ export function ChannelChart({ tickets }: { tickets: Ticket[] }) {
             <YAxis tickLine={false} axisLine={false} width={32} />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Bar dataKey="value" fill="var(--color-chart-3)" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function BacklogAgingChart({ tickets }: { tickets: Ticket[] }) {
+  const data = backlogAging(tickets)
+  const total = data.reduce((s, d) => s + d.count, 0)
+  if (total === 0) return null
+
+  const AGING_COLORS = [
+    "var(--color-chart-2)", // < 24h — green-ish
+    "var(--color-chart-4)", // 1–7 days — yellow
+    "var(--color-chart-5)", // 7–30 days — orange
+    "var(--color-chart-1)", // > 30 days — red-ish
+  ]
+
+  const config = { count: { label: "Tickets" } } satisfies ChartConfig
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Backlog aging</CardTitle>
+        <CardDescription>Age of open, in-progress &amp; pending tickets</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={config} className="h-[220px] w-full">
+          <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis dataKey="bucket" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+            <YAxis tickLine={false} axisLine={false} width={32} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={AGING_COLORS[i % AGING_COLORS.length]} />
+              ))}
+            </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>

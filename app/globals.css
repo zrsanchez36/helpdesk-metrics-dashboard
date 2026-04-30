@@ -123,3 +123,62 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Print / PDF export ──────────────────────────────────────────────────── */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Hide interactive chrome */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Expand all tab panels, not just the active one */
+  [role="tabpanel"][data-state="inactive"],
+  [role="tabpanel"][hidden] {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Section page breaks */
+  .print-section {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .print-section:first-of-type {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  /* Prevent awkward breaks inside cards */
+  .recharts-wrapper,
+  [data-slot="card"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Clean white background */
+  body,
+  [data-slot="card"],
+  .bg-card,
+  .bg-background {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Ensure chart SVGs render */
+  svg {
+    overflow: visible !important;
+  }
+}

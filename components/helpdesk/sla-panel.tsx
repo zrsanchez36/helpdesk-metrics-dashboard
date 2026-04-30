@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import type { Ticket, TicketPriority } from "@/lib/helpdesk/types"
-import { SLA_TARGETS_HOURS } from "@/lib/helpdesk/analytics"
+import { DEFAULT_SLA_TARGETS, type SlaTargets } from "@/lib/helpdesk/analytics"
 import { formatHours, formatNumber } from "@/lib/helpdesk/statistics"
 
 interface SlaRow {
@@ -14,13 +14,13 @@ interface SlaRow {
   pct: number
 }
 
-function compute(tickets: Ticket[]): SlaRow[] {
+function compute(tickets: Ticket[], slaTargets: SlaTargets): SlaRow[] {
   const priorities: TicketPriority[] = ["critical", "high", "medium", "low"]
   return priorities.map((p) => {
     const list = tickets.filter(
       (t) => t.priority === p && (t.status === "resolved" || t.status === "closed") && t.resolutionTimeHours != null,
     )
-    const target = SLA_TARGETS_HOURS[p]
+    const target = slaTargets[p]
     const met = list.filter((t) =>
       t.slaBreached !== undefined ? !t.slaBreached : (t.resolutionTimeHours as number) <= target,
     ).length
@@ -34,8 +34,8 @@ function compute(tickets: Ticket[]): SlaRow[] {
   })
 }
 
-export function SlaPanel({ tickets }: { tickets: Ticket[] }) {
-  const rows = compute(tickets)
+export function SlaPanel({ tickets, slaTargets = DEFAULT_SLA_TARGETS }: { tickets: Ticket[]; slaTargets?: SlaTargets }) {
+  const rows = compute(tickets, slaTargets)
 
   return (
     <Card>
