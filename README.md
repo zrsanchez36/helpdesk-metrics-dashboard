@@ -1,6 +1,10 @@
 # Helpdesk Metrics Dashboard
 
+**[Live demo →](https://v0-helpdesk-metrics-dashboard.vercel.app/)** — loads with sample data, no upload or sign-in required.
+
 A client-side analytics dashboard for IT helpdesk and service desk teams. Upload your ticket exports and get instant KPIs, charts, agent leaderboards, SLA compliance tracking, and stakeholder-ready insights — all processed locally in the browser with no data ever sent to a server.
+
+![Dashboard overview showing KPI cards, ticket volume trend, and priority breakdown](public/screenshots/dashboard-overview.jpg)
 
 ## Why this exists
 
