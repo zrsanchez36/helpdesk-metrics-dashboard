@@ -2,6 +2,16 @@
 
 A client-side analytics dashboard for IT helpdesk and service desk teams. Upload your ticket exports and get instant KPIs, charts, agent leaderboards, SLA compliance tracking, and stakeholder-ready insights — all processed locally in the browser with no data ever sent to a server.
 
+## Why this exists
+
+Built to bring the same operational rigor I use running a service desk into a public, working tool, not just a resume line:
+
+- **The KPI layer mirrors how a desk actually gets managed** — SLA compliance, backlog aging, and resolution-time percentiles are the numbers that drive daily decisions, not vanity metrics.
+- **Vendor-agnostic on purpose** — auto column detection across Zendesk, Jira, Freshdesk, and ServiceNow reflects working across multiple ticketing platforms rather than assuming one.
+- **Privacy-by-design architecture** — all parsing and analytics run client-side; no ticket data is ever sent to a server. That was a deliberate constraint, not a default, so the tool is safe to demo with real-looking data.
+
+No upload needed to try it — click **"Or explore with sample data"** to load 240 generated tickets and see the full dashboard immediately.
+
 ## Features
 
 - **Multi-file compilation** — upload multiple exports (CSV, Excel, JSON, SQL) and they are merged into a single dataset with automatic deduplication by ticket ID
