@@ -10,23 +10,20 @@ export const metadata: Metadata = {
   title: 'Helpdesk Metrics Dashboard',
   description:
     'Upload CSV, Excel, JSON, or SQL helpdesk exports and get instant KPIs, charts, agent performance and descriptive statistics ready to present.',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
+        url: '/hd-favicon-32.png',
+        type: 'image/png',
+        sizes: '32x32',
       },
       {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
+        url: '/hd-favicon.svg',
         type: 'image/svg+xml',
+        sizes: 'any',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/hd-apple-icon.png',
   },
 }
 
