@@ -3,6 +3,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Filter, RotateCcw } from "lucide-react"
+import { STATUS_LABELS, TICKET_STATUSES } from "@/lib/helpdesk/types"
 
 export interface FilterState {
   agent: string
@@ -64,16 +65,14 @@ export function Filters({ state, setState, agents, categories }: FiltersProps) {
       </Select>
 
       <Select value={state.status} onValueChange={(v) => update("status", v)}>
-        <SelectTrigger className="h-8 w-[130px]">
+        <SelectTrigger className="h-8 w-[160px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All statuses</SelectItem>
-          <SelectItem value="open">Open</SelectItem>
-          <SelectItem value="in_progress">In progress</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="resolved">Resolved</SelectItem>
-          <SelectItem value="closed">Closed</SelectItem>
+          {TICKET_STATUSES.map((status) => (
+            <SelectItem key={status} value={status}>{STATUS_LABELS[status]}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

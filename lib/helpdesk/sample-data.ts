@@ -23,7 +23,6 @@ const CATEGORIES = [
 ]
 const CHANNELS = ["Email", "Phone", "Portal", "Chat", "Walk-in"]
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "critical"]
-const STATUSES: TicketStatus[] = ["open", "in_progress", "pending", "resolved", "closed"]
 const SUBJECTS = [
   "Cannot connect to VPN",
   "Outlook crashes on launch",
@@ -73,7 +72,7 @@ export function generateSampleTickets(count = 240): Ticket[] {
       ? rng() < 0.6
         ? "resolved"
         : "closed"
-      : pick<TicketStatus>(["open", "in_progress", "pending"], rng)
+      : pick<TicketStatus>(["open", "in_progress", "pending", "waiting_on_user"], rng)
 
     const resolvedAt = isResolved ? new Date(created.getTime() + resolutionTimeHours * 3600 * 1000) : null
 
@@ -102,6 +101,8 @@ export function generateSampleTickets(count = 240): Ticket[] {
       requester: `user${Math.floor(rng() * 200) + 1}@company.com`,
       channel: pick(CHANNELS, rng),
       createdAt: created,
+      dueAt: new Date(created.getTime() + slaTarget * 3600000),
+      daysInCurrentStatus: Math.floor((now.getTime() - created.getTime()) / 86400000 * 0.5),
       resolvedAt,
       firstResponseAt,
       resolutionTimeHours: isResolved ? resolutionTimeHours : null,
@@ -111,5 +112,5 @@ export function generateSampleTickets(count = 240): Ticket[] {
     })
   }
 
-  return tickets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  return tickets.sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
 }

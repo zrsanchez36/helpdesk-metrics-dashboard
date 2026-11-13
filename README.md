@@ -74,6 +74,9 @@ npm run lint
 1. Open the app in your browser.
 2. Drag and drop one or more helpdesk export files onto the upload area, or click **Choose files**.
 3. Use the filter bar to narrow by date range, priority, status, category, or agent.
+   Under **Tickets → Follow-up queue**, sort unresolved tickets by creation age, reported days in current status, or due date. Set **Compare dates as of** to the export date to review an older snapshot. **Past due** means due before that calendar day; it does not imply an SLA breach.
+
+   Open-ticket exports can use `Ticket #`, `Create Date`, `Summary`, `Category`, `Status`, `Due At`, and `Days in Current Status`. Dates such as `11-12-2026 @ 05:00 PM` are read in local time. Blank status durations and dates remain unknown.
 4. Switch between the **Overview**, **Performance**, **Statistics**, and **Tickets** tabs.
 5. Click **SLA targets** in the header to customise resolution time thresholds.
 6. Click **PDF** to export the full dashboard as a print-ready report, or **CSV** to download the filtered data.

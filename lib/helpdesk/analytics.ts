@@ -1,4 +1,5 @@
 import type { Ticket, TicketPriority, TicketStatus } from "./types"
+import { TICKET_STATUSES } from "./types"
 import { mean, median, mode, percentile, stdDev } from "./statistics"
 
 export type SlaTargets = Record<TicketPriority, number>
@@ -63,7 +64,7 @@ export function computeKPIs(tickets: Ticket[], slaTargets: SlaTargets = DEFAULT_
     slaCompliancePct: slaConsidered > 0 ? (slaMet / slaConsidered) * 100 : 0,
     avgCsat: mean(csatScores),
     csatCount: csatScores.length,
-    backlog: tickets.filter((t) => t.status === "open" || t.status === "in_progress" || t.status === "pending").length,
+    backlog: open,
   }
 }
 
@@ -82,10 +83,12 @@ export function ticketsOverTime(
     return x.toISOString().slice(0, 10)
   }
   for (const t of tickets) {
-    const k = fmt(t.createdAt)
-    const cur = map.get(k) ?? { created: 0, resolved: 0 }
-    cur.created++
-    map.set(k, cur)
+    if (t.createdAt) {
+      const k = fmt(t.createdAt)
+      const cur = map.get(k) ?? { created: 0, resolved: 0 }
+      cur.created++
+      map.set(k, cur)
+    }
     if (t.resolvedAt) {
       const rk = fmt(t.resolvedAt)
       const cur2 = map.get(rk) ?? { created: 0, resolved: 0 }
@@ -199,8 +202,7 @@ export function resolutionByPriority(tickets: Ticket[]): {
 }
 
 export function statusBreakdown(tickets: Ticket[]): { status: TicketStatus; count: number }[] {
-  const order: TicketStatus[] = ["open", "in_progress", "pending", "resolved", "closed"]
-  return order.map((s) => ({ status: s, count: tickets.filter((t) => t.status === s).length }))
+  return TICKET_STATUSES.map((s) => ({ status: s, count: tickets.filter((t) => t.status === s).length }))
 }
 
 export function csatDistribution(tickets: Ticket[]): { score: number; count: number }[] {
@@ -214,7 +216,7 @@ export function csatDistribution(tickets: Ticket[]): { score: number; count: num
 export function backlogAging(tickets: Ticket[]): { bucket: string; count: number }[] {
   const now = Date.now()
   const openTickets = tickets.filter(
-    (t) => t.status === "open" || t.status === "in_progress" || t.status === "pending",
+    (t) => t.status !== "resolved" && t.status !== "closed",
   )
   return [
     { bucket: "< 24h", minH: 0, maxH: 24 },
@@ -224,6 +226,7 @@ export function backlogAging(tickets: Ticket[]): { bucket: string; count: number
   ].map(({ bucket, minH, maxH }) => ({
     bucket,
     count: openTickets.filter((t) => {
+      if (!t.createdAt) return false
       const ageH = (now - t.createdAt.getTime()) / 3600000
       return ageH >= minH && ageH < maxH
     }).length,

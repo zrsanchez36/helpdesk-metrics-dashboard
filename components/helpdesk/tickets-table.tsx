@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import type { Ticket, TicketPriority, TicketStatus } from "@/lib/helpdesk/types"
+import { STATUS_LABELS } from "@/lib/helpdesk/types"
 import { formatHours } from "@/lib/helpdesk/statistics"
 import { cn } from "@/lib/utils"
 
@@ -18,21 +19,14 @@ const STATUS_STYLES: Record<TicketStatus, string> = {
   open: "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-400",
   in_progress: "bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-400",
   pending: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
+  waiting_on_user: "bg-pink-500/10 text-pink-700 border-pink-500/20 dark:text-pink-400",
   resolved: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400",
   closed: "bg-muted text-muted-foreground border-border",
 }
 
-const STATUS_LABEL: Record<TicketStatus, string> = {
-  open: "Open",
-  in_progress: "In progress",
-  pending: "Pending",
-  resolved: "Resolved",
-  closed: "Closed",
-}
-
 export function TicketsTable({ tickets, limit = 10 }: { tickets: Ticket[]; limit?: number }) {
   const rows = [...tickets]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .sort((a, b) => (b.createdAt?.getTime() ?? -Infinity) - (a.createdAt?.getTime() ?? -Infinity))
     .slice(0, limit)
 
   return (
@@ -68,7 +62,7 @@ export function TicketsTable({ tickets, limit = 10 }: { tickets: Ticket[]; limit
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn("font-normal", STATUS_STYLES[t.status])}>
-                      {STATUS_LABEL[t.status]}
+                      {STATUS_LABELS[t.status]}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{t.category}</TableCell>
@@ -77,7 +71,7 @@ export function TicketsTable({ tickets, limit = 10 }: { tickets: Ticket[]; limit
                     {t.resolutionTimeHours != null ? formatHours(t.resolutionTimeHours) : "—"}
                   </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
-                    {t.createdAt.toLocaleDateString()}
+                    {t.createdAt?.toLocaleDateString() ?? "—"}
                   </TableCell>
                 </TableRow>
               ))}

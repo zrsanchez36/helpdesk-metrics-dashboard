@@ -28,12 +28,12 @@ const PRIORITY_MAP: Record<string, TicketPriority> = {
 const STATUS_MAP: Record<string, TicketStatus> = {
   open: "open",
   new: "open",
-  "in progress": "in_progress",
   in_progress: "in_progress",
   inprogress: "in_progress",
   working: "in_progress",
   pending: "pending",
   waiting: "pending",
+  waiting_on_user: "waiting_on_user",
   hold: "pending",
   on_hold: "pending",
   resolved: "resolved",
@@ -45,7 +45,7 @@ const STATUS_MAP: Record<string, TicketStatus> = {
 }
 
 const FIELD_ALIASES: Record<keyof Ticket, string[]> = {
-  id: ["id", "ticket_id", "ticketid", "ticket", "number", "ref", "reference", "case_id", "case"],
+  id: ["id", "ticket_#", "ticket_id", "ticketid", "ticket", "number", "ref", "reference", "case_id", "case"],
   subject: ["subject", "title", "summary", "description", "issue", "problem"],
   status: ["status", "state", "ticket_status"],
   priority: ["priority", "severity", "urgency", "level"],
@@ -53,7 +53,9 @@ const FIELD_ALIASES: Record<keyof Ticket, string[]> = {
   agent: ["agent", "assignee", "assigned_to", "owner", "technician", "handler", "rep"],
   requester: ["requester", "reporter", "user", "customer", "submitter", "email", "user_email"],
   channel: ["channel", "source", "origin", "via"],
-  createdAt: ["created_at", "createdat", "created", "open_date", "opened_at", "date_created", "submitted_at", "date"],
+  createdAt: ["create_date", "created_at", "createdat", "created", "open_date", "opened_at", "date_created", "submitted_at", "date"],
+  dueAt: ["due_at", "dueat", "due_date"],
+  daysInCurrentStatus: ["days_in_current_status", "daysincurrentstatus"],
   resolvedAt: ["resolved_at", "resolvedat", "resolved", "closed_at", "closedat", "completion_date", "date_resolved"],
   firstResponseAt: ["first_response_at", "first_response", "firstresponse", "responded_at", "first_reply_at"],
   resolutionTimeHours: ["resolution_time", "resolution_hours", "time_to_resolve", "ttr", "resolution"],
@@ -92,6 +94,14 @@ function parseDate(v: unknown): Date | null {
   }
   const s = String(v).trim()
   if (!s) return null
+  if (s.includes("@")) {
+    const match = /^(\d{1,2})-(\d{1,2})-(\d{4})\s*@\s*(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(s)
+    if (!match) return null
+    const [, month, day, year, hour, minute, period] = match
+    if (+hour < 1 || +hour > 12 || +minute > 59) return null
+    const date = new Date(+year, +month - 1, +day, +hour % 12 + (period.toUpperCase() === "PM" ? 12 : 0), +minute)
+    return date.getFullYear() === +year && date.getMonth() === +month - 1 && date.getDate() === +day ? date : null
+  }
   const d = new Date(s)
   return isNaN(d.getTime()) ? null : d
 }
@@ -116,10 +126,10 @@ function parseBool(v: unknown): boolean | undefined {
 
 function rowsToTickets(rows: Record<string, unknown>[], warnings: string[]): Ticket[] {
   if (rows.length === 0) return []
-  const headers = Object.keys(rows[0])
+  const headers = Array.from(new Set(rows.flatMap(row => Object.keys(row))))
   const keyMap = buildKeyMap(headers)
 
-  if (!keyMap.has("createdAt")) warnings.push("No 'created at' column detected — using row order for time series.")
+  if (!keyMap.has("createdAt")) warnings.push("No creation date column detected. Ticket ages are unknown.")
   if (!keyMap.has("priority")) warnings.push("No 'priority' column detected — defaulting to 'medium'.")
   if (!keyMap.has("status")) warnings.push("No 'status' column detected — defaulting to 'open'.")
 
@@ -136,22 +146,23 @@ function rowsToTickets(rows: Record<string, unknown>[], warnings: string[]): Tic
       .trim()
     const priority: TicketPriority = PRIORITY_MAP[priorityRaw] ?? "medium"
 
-    const statusRaw = String(get("status") ?? "open")
-      .toLowerCase()
-      .trim()
+    const statusRaw = normalizeKey(String(get("status") ?? "open"))
     const status: TicketStatus = STATUS_MAP[statusRaw] ?? "open"
 
-    const createdAt = parseDate(get("createdAt")) ?? new Date(Date.now() - (rows.length - idx) * 3600 * 1000)
+    const createdAt = parseDate(get("createdAt"))
+    const dueAt = parseDate(get("dueAt"))
+    const duration = /^(\d+)(?:\s+days?)?$/i.exec(String(get("daysInCurrentStatus") ?? "").trim())
+    const daysInCurrentStatus = duration && Number.isSafeInteger(Number(duration[1])) ? Number(duration[1]) : null
     const resolvedAt = parseDate(get("resolvedAt"))
     const firstResponseAt = parseDate(get("firstResponseAt"))
 
     let resolutionTimeHours = parseNumber(get("resolutionTimeHours"))
-    if (resolutionTimeHours == null && resolvedAt) {
+    if (resolutionTimeHours == null && resolvedAt && createdAt) {
       resolutionTimeHours = (resolvedAt.getTime() - createdAt.getTime()) / 3600000
     }
 
     let firstResponseTimeHours = parseNumber(get("firstResponseTimeHours"))
-    if (firstResponseTimeHours == null && firstResponseAt) {
+    if (firstResponseTimeHours == null && firstResponseAt && createdAt) {
       firstResponseTimeHours = (firstResponseAt.getTime() - createdAt.getTime()) / 3600000
     }
 
@@ -168,6 +179,8 @@ function rowsToTickets(rows: Record<string, unknown>[], warnings: string[]): Tic
       requester: get("requester") ? String(get("requester")) : undefined,
       channel: get("channel") ? String(get("channel")) : undefined,
       createdAt,
+      dueAt,
+      daysInCurrentStatus,
       resolvedAt,
       firstResponseAt,
       resolutionTimeHours: resolutionTimeHours != null ? Math.max(0, resolutionTimeHours) : null,

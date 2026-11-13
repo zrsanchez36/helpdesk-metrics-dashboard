@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import type { Ticket } from "@/lib/helpdesk/types"
+import { STATUS_LABELS } from "@/lib/helpdesk/types"
 import {
   backlogAging,
   countBy,
@@ -40,14 +41,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   high: "var(--color-chart-5)",
   medium: "var(--color-chart-2)",
   low: "var(--color-chart-3)",
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  open: "Open",
-  in_progress: "In Progress",
-  pending: "Pending",
-  resolved: "Resolved",
-  closed: "Closed",
 }
 
 function formatDateTick(d: string) {
@@ -149,10 +142,14 @@ export function PriorityChart({ tickets }: { tickets: Ticket[] }) {
 }
 
 export function StatusChart({ tickets }: { tickets: Ticket[] }) {
-  const data = statusBreakdown(tickets).map((d, i) => ({
+  const statusColors = {
+    open: CHART_COLORS[0], in_progress: CHART_COLORS[1], pending: CHART_COLORS[2],
+    waiting_on_user: "var(--color-pink-500)", resolved: CHART_COLORS[3], closed: CHART_COLORS[4],
+  }
+  const data = statusBreakdown(tickets).map((d) => ({
     name: STATUS_LABELS[d.status],
     value: d.count,
-    fill: CHART_COLORS[i % CHART_COLORS.length],
+    fill: statusColors[d.status],
   }))
   const config = { value: { label: "Tickets" } } satisfies ChartConfig
 
@@ -164,12 +161,12 @@ export function StatusChart({ tickets }: { tickets: Ticket[] }) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[260px] w-full">
-          <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-            <YAxis tickLine={false} axisLine={false} width={32} />
+          <BarChart data={data} layout="vertical" margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+            <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
+            <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={108} fontSize={12} interval={0} />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+            <Bar dataKey="value" radius={[0, 6, 6, 0]}>
               {data.map((d, i) => (
                 <Cell key={i} fill={d.fill} />
               ))}
@@ -300,7 +297,7 @@ export function BacklogAgingChart({ tickets }: { tickets: Ticket[] }) {
     <Card>
       <CardHeader>
         <CardTitle>Backlog aging</CardTitle>
-        <CardDescription>Age of open, in-progress &amp; pending tickets</CardDescription>
+        <CardDescription>Age of unresolved tickets, including those waiting on a user</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[220px] w-full">

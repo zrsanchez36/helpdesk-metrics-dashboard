@@ -33,6 +33,7 @@ import {
 import { AgentTable } from "./agent-table"
 import { StatsTable } from "./stats-table"
 import { TicketsTable } from "./tickets-table"
+import { FollowUpTable } from "./follow-up-table"
 import { SlaPanel } from "./sla-panel"
 import { InsightsPanel } from "./insights"
 
@@ -47,7 +48,7 @@ function applyFilters(tickets: Ticket[], f: FilterState): Ticket[] {
   if (f.range !== "all") {
     const days = Number.parseInt(f.range, 10)
     const cutoff = Date.now() - days * 86400 * 1000
-    out = out.filter((t) => t.createdAt.getTime() >= cutoff)
+    out = out.filter((t) => t.createdAt && t.createdAt.getTime() >= cutoff)
   }
   if (f.priority !== "all") out = out.filter((t) => t.priority === f.priority)
   if (f.status !== "all") out = out.filter((t) => t.status === f.status)
@@ -59,7 +60,7 @@ function applyFilters(tickets: Ticket[], f: FilterState): Ticket[] {
 function exportCSV(tickets: Ticket[]) {
   const headers = [
     "id", "subject", "status", "priority", "category", "agent", "channel",
-    "createdAt", "resolvedAt", "resolutionTimeHours", "firstResponseTimeHours", "csatScore", "slaBreached",
+    "createdAt", "dueAt", "daysInCurrentStatus", "resolvedAt", "resolutionTimeHours", "firstResponseTimeHours", "csatScore", "slaBreached",
   ]
   const escape = (v: unknown) => {
     if (v == null) return ""
@@ -213,6 +214,7 @@ export function HelpdeskDashboard() {
     const currentStart = now - days * 86400 * 1000
     const prevStart = currentStart - days * 86400 * 1000
     let prev = allTickets.filter((t) => {
+      if (!t.createdAt) return false
       const ts = t.createdAt.getTime()
       return ts >= prevStart && ts < currentStart
     })
@@ -435,6 +437,7 @@ export function HelpdeskDashboard() {
                 <div className="print-only section-title">
                   <h2 className="text-lg font-semibold mb-4 mt-8">Recent tickets</h2>
                 </div>
+                <FollowUpTable tickets={filtered} />
                 <TicketsTable tickets={filtered} limit={25} />
               </TabsContent>
             </Tabs>
